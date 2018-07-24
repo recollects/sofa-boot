@@ -16,10 +16,11 @@
  */
 package com.alipay.sofa.infra.autoconfigure;
 
-import com.alipay.sofa.infra.log.InfraHealthCheckLoggerFactory;
 import com.alipay.sofa.infra.endpoint.SofaBootVersionEndpoint;
-import org.slf4j.Logger;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import com.alipay.sofa.infra.endpoint.SofaBootVersionEndpointMvcAdapter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -27,14 +28,18 @@ import org.springframework.context.annotation.Configuration;
  * @author yangguanchao
  */
 @Configuration
-@EnableConfigurationProperties(SofaBootInfraProperties.class)
 public class SofaBootInfraAutoConfiguration {
 
-    Logger logger = InfraHealthCheckLoggerFactory.getLogger(SofaBootInfraAutoConfiguration.class);
+    @Bean
+    @ConditionalOnWebApplication
+    @ConditionalOnProperty(prefix = "com.alipay.sofa.versions", name = "enabled", matchIfMissing = true)
+    public SofaBootVersionEndpoint sofaBootVersionEndpoint() {
+        return new SofaBootVersionEndpoint();
+    }
 
     @Bean
-    public SofaBootVersionEndpoint sofaBootVersionEndpoint() {
-        //sofaboot/version
-        return new SofaBootVersionEndpoint();
+    @ConditionalOnBean(SofaBootVersionEndpoint.class)
+    public SofaBootVersionEndpointMvcAdapter sofaBootVersionEndpointMvcAdapter(SofaBootVersionEndpoint sofaBootVersionEndpoint) {
+        return new SofaBootVersionEndpointMvcAdapter(sofaBootVersionEndpoint);
     }
 }

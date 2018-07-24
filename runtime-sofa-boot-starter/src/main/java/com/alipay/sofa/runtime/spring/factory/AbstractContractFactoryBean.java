@@ -16,13 +16,15 @@
  */
 package com.alipay.sofa.runtime.spring.factory;
 
-import com.alipay.sofa.runtime.service.impl.BindingFactoryContainer;
+import com.alipay.sofa.runtime.api.ServiceRuntimeException;
+import com.alipay.sofa.runtime.constants.SofaRuntimeFrameworkConstants;
+import com.alipay.sofa.runtime.service.binding.JvmBinding;
 import com.alipay.sofa.runtime.spi.binding.Binding;
+import com.alipay.sofa.runtime.spi.binding.BindingAdapterFactory;
 import com.alipay.sofa.runtime.spi.component.SofaRuntimeContext;
 import com.alipay.sofa.runtime.spi.service.BindingConverter;
 import com.alipay.sofa.runtime.spi.service.BindingConverterContext;
 import com.alipay.sofa.runtime.spi.service.BindingConverterFactory;
-import com.alipay.sofa.runtime.spi.spring.SofaRuntimeContextAware;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -42,8 +44,7 @@ import java.util.List;
  *
  * @author xuanbei 18/3/1
  */
-public abstract class AbstractContractFactoryBean implements InitializingBean,
-                                                 SofaRuntimeContextAware, FactoryBean,
+public abstract class AbstractContractFactoryBean implements InitializingBean, FactoryBean,
                                                  ApplicationContextAware {
     /** bean id */
     protected String                  beanId;
@@ -60,14 +61,15 @@ public abstract class AbstractContractFactoryBean implements InitializingBean,
     /** spring context */
     protected ApplicationContext      applicationContext;
     /** bindings */
-    protected List<Binding>           bindings                = new ArrayList<>(2);
+    protected List<Binding>           bindings = new ArrayList<>(2);
     /** document encoding */
     protected String                  documentEncoding;
     /** repeat times */
     protected String                  repeatReferLimit;
     /** binding converter factory */
-    protected BindingConverterFactory bindingConverterFactory = BindingFactoryContainer
-                                                                  .getBindingConverterFactory();
+    protected BindingConverterFactory bindingConverterFactory;
+    /** binding adapter factory */
+    protected BindingAdapterFactory   bindingAdapterFactory;
 
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -82,6 +84,14 @@ public abstract class AbstractContractFactoryBean implements InitializingBean,
                 .getDocumentElement();
             tempElements.add(node);
         }
+        sofaRuntimeContext = applicationContext.getBean(
+            SofaRuntimeFrameworkConstants.SOFA_RUNTIME_CONTEXT_BEAN_ID, SofaRuntimeContext.class);
+        bindingConverterFactory = applicationContext.getBean(
+            SofaRuntimeFrameworkConstants.BINDING_CONVERTER_FACTORY_BEAN_ID,
+            BindingConverterFactory.class);
+        bindingAdapterFactory = applicationContext.getBean(
+            SofaRuntimeFrameworkConstants.BINDING_ADAPTER_FACTORY_BEAN_ID,
+            BindingAdapterFactory.class);
         this.bindings = parseBindings(tempElements, applicationContext, isInBinding());
         doAfterPropertiesSet();
     }
@@ -97,6 +107,11 @@ public abstract class AbstractContractFactoryBean implements InitializingBean,
                     .getBindingConverterByTagName(tagName);
 
                 if (bindingConverter == null) {
+                    if (!tagName.equals(SofaRuntimeFrameworkConstants.BINDING_PREFIX
+                                        + JvmBinding.JVM_BINDING_TYPE.toString())) {
+                        throw new ServiceRuntimeException("Can't find BindingConverter of type "
+                                                          + tagName);
+                    }
                     continue;
                 }
 
@@ -124,7 +139,7 @@ public abstract class AbstractContractFactoryBean implements InitializingBean,
     }
 
     public Class<?> getInterfaceClass() {
-        if (interfaceClass == null && this.applicationContext != null) {
+        if (interfaceClass == null) {
             try {
                 interfaceClass = this.getClass().getClassLoader().loadClass(interfaceType);
             } catch (ClassNotFoundException e) {
@@ -182,9 +197,4 @@ public abstract class AbstractContractFactoryBean implements InitializingBean,
     protected abstract void doAfterPropertiesSet() throws Exception;
 
     protected abstract void setProperties(BindingConverterContext bindingConverterContext);
-
-    @Override
-    public void setSofaRuntimeContext(SofaRuntimeContext sofaRuntimeContext) {
-        this.sofaRuntimeContext = sofaRuntimeContext;
-    }
 }

@@ -16,10 +16,13 @@
  */
 package com.alipay.sofa.runtime.spring.factory;
 
+import com.alipay.sofa.runtime.constants.SofaRuntimeFrameworkConstants;
 import com.alipay.sofa.runtime.model.InterfaceMode;
+import com.alipay.sofa.runtime.service.binding.JvmBinding;
 import com.alipay.sofa.runtime.service.component.Reference;
 import com.alipay.sofa.runtime.service.component.impl.ReferenceImpl;
 import com.alipay.sofa.runtime.service.helper.ReferenceRegisterHelper;
+import com.alipay.sofa.runtime.spi.binding.BindingAdapterFactory;
 import com.alipay.sofa.runtime.spi.service.BindingConverterContext;
 import org.springframework.util.Assert;
 
@@ -27,17 +30,34 @@ import org.springframework.util.Assert;
  * @author xuanbei 18/3/1
  */
 public class ReferenceFactoryBean extends AbstractContractFactoryBean {
-    private Object proxy;
+    private Object  proxy;
+    /** jvm first or not */
+    private boolean jvmFirst = true;
     /** load balance **/
-    private String loadBalance;
+    private String  loadBalance;
+
+    public ReferenceFactoryBean() {
+    }
+
+    public ReferenceFactoryBean(String interfaceType) {
+        this.interfaceType = interfaceType;
+    }
 
     @Override
     protected void doAfterPropertiesSet() throws Exception {
         Reference reference = buildReference();
-        Assert.isTrue(bindings.size() == 1, "<sofa:reference/> should have one binding.");
+        Assert
+            .isTrue(bindings.size() <= 1,
+                "Found more than one binding in <sofa:reference/>, <sofa:reference/> can only have one binding.");
+
+        if (bindings.size() == 0) {
+            bindings.add(new JvmBinding());
+        }
 
         reference.addBinding(bindings.get(0));
-        proxy = ReferenceRegisterHelper.registerReference(reference, sofaRuntimeContext);
+        proxy = ReferenceRegisterHelper.registerReference(reference, applicationContext.getBean(
+            SofaRuntimeFrameworkConstants.BINDING_ADAPTER_FACTORY_BEAN_ID,
+            BindingAdapterFactory.class), sofaRuntimeContext);
     }
 
     @Override
@@ -46,8 +66,8 @@ public class ReferenceFactoryBean extends AbstractContractFactoryBean {
         bindingConverterContext.setBeanId(beanId);
     }
 
-    protected Reference buildReference() {
-        return new ReferenceImpl(uniqueId, getInterfaceClass(), InterfaceMode.spring);
+    private Reference buildReference() {
+        return new ReferenceImpl(uniqueId, getInterfaceClass(), InterfaceMode.spring, jvmFirst);
     }
 
     @Override
@@ -63,6 +83,10 @@ public class ReferenceFactoryBean extends AbstractContractFactoryBean {
     @Override
     protected boolean isInBinding() {
         return true;
+    }
+
+    public void setJvmFirst(boolean jvmFirst) {
+        this.jvmFirst = jvmFirst;
     }
 
     public String getLoadBalance() {

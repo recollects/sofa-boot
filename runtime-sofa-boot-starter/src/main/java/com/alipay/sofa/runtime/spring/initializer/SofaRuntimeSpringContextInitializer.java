@@ -17,9 +17,7 @@
 package com.alipay.sofa.runtime.spring.initializer;
 
 import com.alipay.sofa.common.log.Constants;
-import com.alipay.sofa.infra.constants.CommonMiddlewareConstants;
 import com.alipay.sofa.infra.log.space.SofaBootLogSpaceIsolationInit;
-import com.alipay.sofa.runtime.initializer.SofaFrameworkInitializer;
 import com.alipay.sofa.runtime.spi.log.SofaRuntimeLoggerFactory;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -34,11 +32,13 @@ public class SofaRuntimeSpringContextInitializer
     @Override
     public void initialize(ConfigurableApplicationContext applicationContext) {
         Environment environment = applicationContext.getEnvironment();
-        // init logging.level.com.alipay.sofa.runtime argument
+
+        //init logging.level.com.alipay.sofa.runtime argument
         String runtimeLogLevelKey = Constants.LOG_LEVEL_PREFIX
                                     + SofaRuntimeLoggerFactory.SOFA_RUNTIME_LOG_SPACE;
         SofaBootLogSpaceIsolationInit.initSofaBootLogger(environment, runtimeLogLevelKey);
-        SofaFrameworkInitializer.initialize(
-            environment.getProperty(CommonMiddlewareConstants.APP_NAME_KEY), applicationContext);
+
+        SofaRuntimeLoggerFactory.getLogger(SofaRuntimeSpringContextInitializer.class).info(
+            "SOFABoot Runtime Starting!");
     }
 }

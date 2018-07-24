@@ -16,9 +16,12 @@
  */
 package com.alipay.sofa.runtime.service.helper;
 
+import com.alipay.sofa.runtime.SofaRuntimeProperties;
+import com.alipay.sofa.runtime.service.binding.JvmBinding;
 import com.alipay.sofa.runtime.service.component.Reference;
 import com.alipay.sofa.runtime.service.component.ReferenceComponent;
 import com.alipay.sofa.runtime.spi.binding.Binding;
+import com.alipay.sofa.runtime.spi.binding.BindingAdapterFactory;
 import com.alipay.sofa.runtime.spi.component.ComponentInfo;
 import com.alipay.sofa.runtime.spi.component.ComponentManager;
 import com.alipay.sofa.runtime.spi.component.DefaultImplementation;
@@ -32,12 +35,20 @@ import java.util.Collection;
  * @author xuanbei 18/3/1
  */
 public class ReferenceRegisterHelper {
-
     public static Object registerReference(Reference reference,
+                                           BindingAdapterFactory bindingAdapterFactory,
                                            SofaRuntimeContext sofaRuntimeContext) {
+        Binding binding = (Binding) reference.getBindings().toArray()[0];
+
+        if (!binding.getBindingType().equals(JvmBinding.JVM_BINDING_TYPE)
+            && !SofaRuntimeProperties.isDisableJvmFirst(sofaRuntimeContext)
+            && reference.isJvmFirst()) {
+            reference.addBinding(new JvmBinding());
+        }
+
         ComponentManager componentManager = sofaRuntimeContext.getComponentManager();
         ReferenceComponent referenceComponent = new ReferenceComponent(reference,
-            new DefaultImplementation(), sofaRuntimeContext);
+            new DefaultImplementation(), bindingAdapterFactory, sofaRuntimeContext);
 
         if (componentManager.isRegistered(referenceComponent.getName())) {
             return componentManager.getComponentInfo(referenceComponent.getName())

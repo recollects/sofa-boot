@@ -25,19 +25,22 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
-
+import org.springframework.core.PriorityOrdered;
+import org.springframework.core.Ordered;
 import java.util.List;
 
 /**
+ * HealthCheckTrigger listens to ContextRefreshedEvent, SofaModuleContextRefreshedListener of isle-sofa-boot-starter should execute before this class.
+ * In order to ensure this class execute at last, please don't implement ${@link PriorityOrdered} or ${@link Ordered} interface.
+ *
  * Created by liangen on 17/8/4.
  */
 @Component
 public class HealthCheckTrigger implements ApplicationListener<ContextRefreshedEvent> {
     private static Logger logger = SofaBootHealthCheckLoggerFactory
-                                     .getLogger(HealthCheckTrigger.class.getCanonicalName());
+                                     .getLogger(HealthCheckTrigger.class);
 
     public void onApplicationEvent(ContextRefreshedEvent contextRefreshedEvent) {
-
         ApplicationContext applicationContext = contextRefreshedEvent.getApplicationContext();
         HealthCheckManager.init(applicationContext);
 
@@ -53,14 +56,14 @@ public class HealthCheckTrigger implements ApplicationListener<ContextRefreshedE
 
         StringBuilder hcInfo = new StringBuilder();
 
-        hcInfo.append("\nFound " + healthCheckers.size() + " SOFABoot component health checkers:")
-            .append("\n");
+        hcInfo.append("\nFound ").append(healthCheckers.size())
+            .append(" SOFABoot component health checkers:\n");
         for (HealthChecker healthchecker : healthCheckers) {
             hcInfo.append(healthchecker.getClass()).append("\n");
         }
 
-        hcInfo.append("Found " + healthIndicators.size() + " HealthIndicator checkers:").append(
-            "\n");
+        hcInfo.append("Found ").append(healthIndicators.size())
+            .append(" HealthIndicator checkers:\n");
         for (HealthIndicator healthIndicator : healthIndicators) {
             hcInfo.append(healthIndicator.getClass()).append("\n");
         }

@@ -40,16 +40,15 @@ import java.util.List;
 public abstract class AbstractContractDefinitionParser extends AbstractSingleBeanDefinitionParser
                                                                                                  implements
                                                                                                  SofaBootTagNameSupport {
-
-    protected static final String INTERFACE_ELEMENT           = "interface";
-    protected static final String INTERFACE_PROPERTY          = "interfaceType";
-    private static final String   BEAN_ID_ELEMENT             = "id";
-    private static final String   BEAN_ID_PROPERTY            = "beanId";
-    private static final String   UNIQUE_ID_ELEMENT           = "unique-id";
-    private static final String   UNIQUE_ID_PROPERTY          = "uniqueId";
-    private static final String   ELEMENTS                    = "elements";
-    private static final String   REPEAT_REFER_LIMIT_ELEMENT  = "repeatReferLimit";
-    private static final String   REPEAT_REFER_LIMIT_PROPERTY = "repeatReferLimit";
+    private static final String INTERFACE_ELEMENT           = "interface";
+    private static final String INTERFACE_PROPERTY          = "interfaceType";
+    private static final String BEAN_ID_ELEMENT             = "id";
+    private static final String BEAN_ID_PROPERTY            = "beanId";
+    private static final String UNIQUE_ID_ELEMENT           = "unique-id";
+    private static final String UNIQUE_ID_PROPERTY          = "uniqueId";
+    private static final String ELEMENTS                    = "elements";
+    private static final String REPEAT_REFER_LIMIT_ELEMENT  = "repeatReferLimit";
+    private static final String REPEAT_REFER_LIMIT_PROPERTY = "repeatReferLimit";
 
     @Override
     protected void doParse(Element element, ParserContext parserContext,
@@ -59,6 +58,8 @@ public abstract class AbstractContractDefinitionParser extends AbstractSingleBea
 
         String interfaceType = element.getAttribute(INTERFACE_ELEMENT);
         builder.addPropertyValue(INTERFACE_PROPERTY, interfaceType);
+        builder.getBeanDefinition().getConstructorArgumentValues()
+            .addIndexedArgumentValue(0, interfaceType);
 
         String uniqueId = element.getAttribute(UNIQUE_ID_ELEMENT);
         builder.addPropertyValue(UNIQUE_ID_PROPERTY, uniqueId);
@@ -78,7 +79,7 @@ public abstract class AbstractContractDefinitionParser extends AbstractSingleBea
                 transformer.transform(new DOMSource(childElement), new StreamResult(buffer));
                 String str = buffer.toString();
                 elementAsTypedStringValueList.add(new TypedStringValue(str, Element.class));
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 throw new ServiceRuntimeException(e);
             }
         }

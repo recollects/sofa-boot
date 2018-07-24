@@ -19,6 +19,7 @@ package com.alipay.sofa.runtime.spring.factory;
 import com.alipay.sofa.runtime.api.ServiceRuntimeException;
 import com.alipay.sofa.runtime.api.annotation.SofaService;
 import com.alipay.sofa.runtime.model.InterfaceMode;
+import com.alipay.sofa.runtime.service.binding.JvmBinding;
 import com.alipay.sofa.runtime.service.component.Service;
 import com.alipay.sofa.runtime.service.component.ServiceComponent;
 import com.alipay.sofa.runtime.service.component.impl.ServiceImpl;
@@ -32,11 +33,18 @@ import com.alipay.sofa.runtime.spi.service.BindingConverterContext;
  * @author xuanbei 18/3/1
  */
 public class ServiceFactoryBean extends AbstractContractFactoryBean {
-    protected Object  ref;
-    protected Service service;
+    private Object  ref;
+    private Service service;
+
+    public ServiceFactoryBean() {
+    }
+
+    public ServiceFactoryBean(String interfaceType) {
+        this.interfaceType = interfaceType;
+    }
 
     @Override
-    protected void doAfterPropertiesSet() throws Exception {
+    protected void doAfterPropertiesSet() {
         if (hasSofaServiceAnnotation()) {
             throw new ServiceRuntimeException(
                 "Bean " + beanId + " of type " + ref.getClass()
@@ -48,12 +56,16 @@ public class ServiceFactoryBean extends AbstractContractFactoryBean {
         implementation.setTarget(ref);
         service = buildService();
 
+        if (bindings.size() == 0) {
+            bindings.add(new JvmBinding());
+        }
+
         for (Binding binding : bindings) {
             service.addBinding(binding);
         }
 
         ComponentInfo componentInfo = new ServiceComponent(implementation, service,
-            sofaRuntimeContext);
+            bindingAdapterFactory, sofaRuntimeContext);
         sofaRuntimeContext.getComponentManager().register(componentInfo);
     }
 
@@ -69,10 +81,7 @@ public class ServiceFactoryBean extends AbstractContractFactoryBean {
             && (annotationUniqueId == null || annotationUniqueId.isEmpty())) {
             return true;
         }
-        if (annotationUniqueId.equals(uniqueId)) {
-            return true;
-        }
-        return false;
+        return annotationUniqueId.equals(uniqueId);
     }
 
     @Override
@@ -80,18 +89,18 @@ public class ServiceFactoryBean extends AbstractContractFactoryBean {
         bindingConverterContext.setBeanId(beanId);
     }
 
-    protected Service buildService() {
+    private Service buildService() {
         return new ServiceImpl(uniqueId, getInterfaceClass(), InterfaceMode.spring, ref);
     }
 
     @Override
     public Object getObject() throws Exception {
-        return ref;
+        return service;
     }
 
     @Override
     public Class<?> getObjectType() {
-        return ref != null ? ref.getClass() : Service.class;
+        return service != null ? service.getClass() : Service.class;
     }
 
     @Override
